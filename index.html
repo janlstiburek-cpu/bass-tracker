@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bass Tracker — Korn Tour 2026</title>
+    <style>
+        :root {
+            --bg: #0f0f0f;
+            --surface: #1a1a1a;
+            --surface2: #242424;
+            --border: #2a2a2a;
+            --text: #e8e8e8;
+            --text-dim: #888;
+            --green: #22c55e;
+            --green-dim: #14532d;
+            --red: #ef4444;
+            --red-dim: #450a0a;
+            --gray: #3f3f46;
+            --blue: #3b82f6;
+            --yellow: #f59e0b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* ── Loading ─────────────────────────────── */
+        #loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: var(--text-dim);
+            font-size: 15px;
+            gap: 10px;
+        }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid var(--border);
+            border-top-color: var(--green);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Setup screen ────────────────────────── */
+        #setup-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .setup-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 460px;
+            width: 100%;
+        }
+
+        .setup-card h1 { font-size: 20px; margin-bottom: 8px; }
+
+        .setup-desc {
+            color: var(--text-dim);
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        .setup-card label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .setup-card input {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'SF Mono', 'Menlo', monospace;
+            margin-bottom: 20px;
+        }
+        .setup-card input:focus { outline: none; border-color: var(--blue); }
+
+        .setup-hint {
+            font-size: 12px;
+            color: var(--text-dim);
+            line-height: 1.5;
+            margin-bottom: 24px;
+            padding: 12px;
+            background: var(--surface2);
+            border-radius: 8px;
+        }
+        .setup-hint a { color: var(--blue); }
+
+        .btn-primary {
+            width: 100%;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-primary:active { opacity: 0.8; }
+
+        /* ── Main screen ─────────────────────────── */
+        #main-screen { display: none; flex-direction: column; min-height: 100vh; }
+
+        /* ── Header ──────────────────────────────── */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 16px 14px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .header-title { font-size: 15px; font-weight: 600; }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .stats-row { display: flex; gap: 8px; }
+
+        .stat-card {
+            background: var(--surface2);
+            border-radius: 12px;
+            padding: 10px 12px;
+            flex: 1;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-value.green  { color: var(--green); }
+        .stat-value.yellow { color: var(--yellow); }
+        .stat-value.blue   { color: var(--blue); }
+
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+
+        .warning-banner {
+            background: #450a0a;
+            border: 1px solid #7f1d1d;
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #fca5a5;
+            display: none;
+        }
+
+        /* ── Calendar ────────────────────────────── */
+        .calendar-container { padding: 16px; }
+
+        .month-section { margin-bottom: 28px; }
+
+        .month-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .weekday-row, .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+        }
+
+        .weekday-row { margin-bottom: 3px; }
+
+        .weekday-label {
+            text-align: center;
+            font-size: 10px;
+            color: var(--text-dim);
+            padding: 2px 0;
+        }
+
+        .day-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            background: var(--surface2);
+            border: 2px solid transparent;
+            transition: transform 0.1s, opacity 0.1s;
+            user-select: none;
+            -webkit-user-select: none;
+            min-height: 38px;
+        }
+
+        .day-cell:active { transform: scale(0.93); }
+
+        .day-cell.empty   { background: transparent; cursor: default; border: none; }
+        .day-cell.future  { opacity: 0.35; cursor: default; }
+        .day-cell.today   { border-color: var(--yellow); opacity: 1; }
+
+        .day-cell.done         { background: var(--green-dim); border-color: #166534; }
+        .day-cell.done.today   { border-color: var(--green); }
+        .day-cell.missed       { background: var(--red-dim); border-color: #7f1d1d; }
+        .day-cell.missed.today { border-color: var(--red); }
+        .day-cell.planned-off  { background: #27272a; border-color: #52525b; opacity: 0.75; }
+
+        .day-number { font-size: 12px; font-weight: 500; line-height: 1; }
+        .day-minutes { font-size: 9px; color: #4ade80; margin-top: 1px; }
+
+        .milestone-dot {
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--blue);
+            position: absolute;
+            top: 3px; right: 3px;
+        }
+
+        /* ── Milestones list ─────────────────────── */
+        .milestones-section { padding: 0 16px 32px; }
+
+        .section-heading {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .milestone-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+        }
+
+        .milestone-date {
+            color: var(--blue);
+            font-weight: 600;
+            min-width: 72px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .milestone-item.past .milestone-label { color: var(--text-dim); }
+        .milestone-item.today-milestone .milestone-label { color: var(--yellow); font-weight: 600; }
+
+        /* ── Log modal ───────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            z-index: 100;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border-radius: 24px 24px 0 0;
+            padding: 20px 20px 48px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .modal-handle {
+            width: 36px; height: 4px;
+            background: var(--border);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        .modal-date {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 18px;
+        }
+
+        .modal-status-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .btn-status {
+            flex: 1;
+            padding: 11px 6px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text-dim);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s;
+        }
+
+        .btn-status.sel-done   { background: var(--green-dim); border-color: var(--green); color: #4ade80; }
+        .btn-status.sel-missed { background: var(--red-dim); border-color: #f87171; color: #fca5a5; }
+        .btn-status.sel-off    { background: #27272a; border-color: #71717a; color: var(--text); }
+
+        .modal-field { margin-bottom: 16px; }
+
+        .modal-field label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 8px;
+        }
+
+        .modal-field input,
+        .modal-field textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 11px 14px;
+            color: var(--text);
+            font-size: 16px;
+            font-family: inherit;
+        }
+        .modal-field textarea { resize: none; height: 76px; font-size: 14px; }
+        .modal-field input:focus,
+        .modal-field textarea:focus { outline: none; border-color: var(--blue); }
+
+        .quality-row { display: flex; gap: 6px; }
+
+        .quality-btn {
+            flex: 1;
+            padding: 10px 4px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            text-align: center;
+            transition: all 0.15s;
+        }
+        .quality-btn.selected {
+            background: #1c1917;
+            border-color: var(--yellow);
+            transform: scale(1.1);
+        }
+
+        .btn-save {
+            width: 100%;
+            background: var(--green);
+            color: #000;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+        }
+        .btn-save:active { opacity: 0.85; }
+
+        /* ── Toast ───────────────────────────────── */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 14px;
+            color: var(--text);
+            z-index: 200;
+            transition: transform 0.3s ease;
+            white-space: nowrap;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── Responsive ──────────────────────────── */
+        @media (min-width: 480px) {
+            .day-cell { min-height: 50px; }
+            .day-number { font-size: 13px; }
+            .modal { border-radius: 20px; margin: 20px; padding: 24px 24px 32px; }
+            .modal-overlay { align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div> Načítám…</div>
+
+<!-- ── Setup ──────────────────────────────────────────────────────────────── -->
+<div id="setup-screen">
+    <div class="setup-card">
+        <h1>🎸 Bass Tracker</h1>
+        <p class="setup-desc">Jiří Korn Tour 2026 — každodenní 30 minut, od dnes do října. Jednorázové nastavení — pak stačí otevřít stránku.</p>
+
+        <label>GitHub Personal Access Token</label>
+        <input type="password" id="setup-token" placeholder="ghp_…" autocomplete="off" />
+
+        <label>Gist ID <span style="font-weight:400;text-transform:none;letter-spacing:0">(nechej prázdné → vytvoří se automaticky)</span></label>
+        <input type="text" id="setup-gist" placeholder="automaticky" autocomplete="off" />
+
+        <div class="setup-hint">
+            Token vytvoříš na: <strong>github.com → Settings → Developer settings → Personal access tokens → Fine-grained</strong><br>
+            Stačí oprávnění: <strong>Gist → Read and write</strong>
+        </div>
+
+        <button class="btn-primary" onclick="setupApp()">Spustit tracker</button>
+    </div>
+</div>
+
+<!-- ── Main ───────────────────────────────────────────────────────────────── -->
+<div id="main-screen">
+
+    <div class="header">
+        <div class="header-top">
+            <div class="header-title">🎸 Bass Tracker — Korn Tour 2026</div>
+            <button class="btn-icon" onclick="showSettings()" title="Nastavení">⚙️</button>
+        </div>
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value green" id="stat-streak">0</div>
+                <div class="stat-label">Řetěz dní</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value blue" id="stat-total-days">0</div>
+                <div class="stat-label">Dní splněno</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value yellow" id="stat-total-hours">0h</div>
+                <div class="stat-label">Celkem hodin</div>
+            </div>
+        </div>
+        <div class="warning-banner" id="warning-banner">
+            ⚠️ Včera jsi necvičil — <strong>Never miss twice.</strong> Dnes to musíš napravit.
+        </div>
+    </div>
+
+    <div class="calendar-container" id="calendar-container"></div>
+
+    <div class="milestones-section">
+        <div class="section-heading">Milníky</div>
+        <div id="milestones-list"></div>
+    </div>
+
+</div>
+
+<!-- ── Modal ──────────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModalOutside(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-handle"></div>
+        <div class="modal-date" id="modal-date-label"></div>
+
+        <div class="modal-status-row">
+            <button class="btn-status" id="btn-done"   onclick="setStatus('done')">✅ Cvičil</button>
+            <button class="btn-status" id="btn-missed" onclick="setStatus('missed')">❌ Vynechal</button>
+            <button class="btn-status" id="btn-off"    onclick="setStatus('planned-off')">⚫ Volno</button>
+        </div>
+
+        <div id="fields-done">
+            <div class="modal-field">
+                <label>Čas (minuty)</label>
+                <input type="number" id="modal-minutes" placeholder="30" min="1" max="180" inputmode="numeric" />
+            </div>
+            <div class="modal-field">
+                <label>Jak to šlo?</label>
+                <div class="quality-row">
+                    <button class="quality-btn" onclick="setQuality(1)">😞</button>
+                    <button class="quality-btn" onclick="setQuality(2)">😐</button>
+                    <button class="quality-btn" onclick="setQuality(3)">😊</button>
+                    <button class="quality-btn" onclick="setQuality(4)">💪</button>
+                    <button class="quality-btn" onclick="setQuality(5)">🔥</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-field">
+            <label>Poznámka <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:11px">(volitelné)</span></label>
+            <textarea id="modal-note" placeholder="Co jsem hrál, jak to šlo…"></textarea>
+        </div>
+
+        <button class="btn-save" onclick="saveEntry()">Uložit</button>
+    </div>
+</div>
+
+<!-- ── Toast ──────────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+
+const START_DATE = '2026-05-24';
+const END_DATE   = '2026-10-31';
+
+const MILESTONES = [
+    { date: '2026-05-28', label: 'Jiří Korn — 1. společná zkouška (pomalé tempo)' },
+    { date: '2026-06-30', label: 'Červen: tempo-building, první celky' },
+    { date: '2026-07-15', label: 'Peak form check — jsi ready?' },
+    { date: '2026-09-01', label: 'Finální příprava fáze' },
+    { date: '2026-10-01', label: 'Poslední měsíc — udržení formy' },
+    { date: '2026-10-15', label: '🎸 PREMIÉRA — Jiří Korn Tour' },
+];
+
+const WEEKDAYS_CS = ['Po','Út','St','Čt','Pá','So','Ne'];
+const MONTHS_CS   = ['Leden','Únor','Březen','Duben','Květen','Červen',
+                     'Červenec','Srpen','Září','Říjen','Listopad','Prosinec'];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let ghToken   = null;
+let gistId    = null;
+let appData   = { sessions: {} };
+let modalDate = null;
+let selStatus  = null;
+let selQuality = null;
+let saving     = false;
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+
+window.addEventListener('DOMContentLoaded', async () => {
+    ghToken = localStorage.getItem('gh_token');
+    gistId  = localStorage.getItem('gist_id');
+
+    if (!ghToken) {
+        show('loading', false);
+        show('setup-screen', true, 'flex');
+        return;
+    }
+    await loadData();
+});
+
+// ── Setup ─────────────────────────────────────────────────────────────────────
+
+async function setupApp() {
+    const token = document.getElementById('setup-token').value.trim();
+    const gist  = document.getElementById('setup-gist').value.trim();
+    if (!token) { toast('Zadej GitHub token'); return; }
+
+    ghToken = token;
+    localStorage.setItem('gh_token', token);
+    show('setup-screen', false);
+    show('loading', true);
+
+    if (gist) {
+        gistId = gist;
+        localStorage.setItem('gist_id', gist);
+        await loadData();
+    } else {
+        await createGist();
+    }
+}
+
+async function createGist() {
+    try {
+        const res = await ghFetch('https://api.github.com/gists', {
+            method: 'POST',
+            body: JSON.stringify({
+                description: 'Bass Tracker — Jiří Korn Tour 2026',
+                public: false,
+                files: { 'bass-tracker.json': { content: JSON.stringify({ sessions: {} }, null, 2) } }
+            })
+        });
+        const data = await res.json();
+        gistId = data.id;
+        localStorage.setItem('gist_id', gistId);
+        renderApp();
+    } catch(e) {
+        show('loading', false);
+        show('setup-screen', true, 'flex');
+        toast('Chyba při vytváření Gist — zkontroluj token');
+    }
+}
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+
+async function loadData() {
+    try {
+        const res  = await ghFetch(`https://api.github.com/gists/${gistId}`);
+        const gist = await res.json();
+        const raw  = gist.files?.['bass-tracker.json']?.content;
+        if (raw) appData = JSON.parse(raw);
+    } catch(e) {
+        toast('Nepodařilo se načíst data — zkontroluj připojení');
+    }
+    renderApp();
+}
+
+async function saveData() {
+    if (saving) return;
+    saving = true;
+    try {
+        await ghFetch(`https://api.github.com/gists/${gistId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+                files: { 'bass-tracker.json': { content: JSON.stringify(appData, null, 2) } }
+            })
+        });
+        toast('Uloženo ✓');
+    } catch(e) {
+        toast('Chyba při ukládání — zkontroluj připojení');
+    }
+    saving = false;
+}
+
+function ghFetch(url, opts = {}) {
+    return fetch(url, {
+        ...opts,
+        headers: {
+            'Authorization': `token ${ghToken}`,
+            'Content-Type': 'application/json',
+            ...(opts.headers || {})
+        }
+    });
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+
+function renderApp() {
+    show('loading', false);
+    show('main-screen', true, 'flex');
+    updateStats();
+    renderCalendar();
+    renderMilestones();
+}
+
+function updateStats() {
+    const today = todayStr();
+
+    // Streak (consecutive days done or planned-off going backwards from today)
+    let streak = 0;
+    let d = parseDate(today);
+    for (let i = 0; i < 300; i++) {
+        const s = dateStr(d);
+        const entry = appData.sessions[s];
+        const status = entry?.status;
+        if (s > today) { d = addDays(d, -1); continue; }
+        if (status === 'done' || status === 'planned-off') { streak++; d = addDays(d, -1); }
+        else break;
+    }
+
+    const doneSessions = Object.values(appData.sessions).filter(e => e.status === 'done');
+    const totalDays    = doneSessions.length;
+    const totalMin     = doneSessions.reduce((s, e) => s + (e.minutes || 0), 0);
+    const totalHours   = totalMin >= 60
+        ? `${(totalMin / 60).toFixed(1)}h`
+        : `${totalMin}m`;
+
+    document.getElementById('stat-streak').textContent      = streak;
+    document.getElementById('stat-total-days').textContent  = totalDays;
+    document.getElementById('stat-total-hours').textContent = totalHours;
+
+    // Never miss twice
+    const yesterday   = dateStr(addDays(parseDate(today), -1));
+    const ydEntry     = appData.sessions[yesterday];
+    const showWarning = ydEntry?.status === 'missed' ||
+        (!ydEntry && yesterday >= START_DATE && yesterday < today);
+    document.getElementById('warning-banner').style.display = showWarning ? 'block' : 'none';
+}
+
+function renderCalendar() {
+    const container = document.getElementById('calendar-container');
+    container.innerHTML = '';
+    const today        = todayStr();
+    const milestoneSet = new Set(MILESTONES.map(m => m.date));
+
+    let cur = new Date(...parseDate(START_DATE).toISOString().split('T')[0].split('-').map((v,i) => i===1?+v-1:+v));
+    cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    const endDate = parseDate(END_DATE);
+
+    while (cur <= endDate) {
+        const year  = cur.getFullYear();
+        const month = cur.getMonth();
+        const section = el('div', 'month-section');
+
+        const header = el('div', 'month-header');
+        header.textContent = `${MONTHS_CS[month]} ${year}`;
+        section.appendChild(header);
+
+        // Weekday labels
+        const wdRow = el('div', 'weekday-row');
+        WEEKDAYS_CS.forEach(d => {
+            const label = el('div', 'weekday-label');
+            label.textContent = d;
+            wdRow.appendChild(label);
+        });
+        section.appendChild(wdRow);
+
+        const grid = el('div', 'days-grid');
+
+        // Offset: Mon=0 … Sun=6
+        const firstDow = new Date(year, month, 1).getDay();
+        const offset   = firstDow === 0 ? 6 : firstDow - 1;
+        for (let i = 0; i < offset; i++) grid.appendChild(el('div', 'day-cell empty'));
+
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dStr    = `${year}-${pad(month+1)}-${pad(day)}`;
+            const cell    = el('div', 'day-cell');
+            const entry   = appData.sessions[dStr];
+            const inRange = dStr >= START_DATE && dStr <= END_DATE;
+            const isPast  = dStr < today;
+            const isToday = dStr === today;
+            const isFuture= dStr > today;
+
+            if (!inRange) { cell.classList.add('empty'); grid.appendChild(cell); continue; }
+
+            if (isToday)       cell.classList.add('today');
+            if (isFuture && !isToday) cell.classList.add('future');
+
+            if (entry) {
+                cell.classList.add(entry.status);
+            } else if (isPast) {
+                cell.classList.add('missed'); // past with no log = missed
+            }
+
+            if (milestoneSet.has(dStr)) {
+                const dot = el('div', 'milestone-dot');
+                cell.appendChild(dot);
+            }
+
+            const numEl = el('div', 'day-number');
+            numEl.textContent = day;
+            cell.appendChild(numEl);
+
+            if (entry?.status === 'done' && entry.minutes) {
+                const minEl = el('div', 'day-minutes');
+                minEl.textContent = `${entry.minutes}'`;
+                cell.appendChild(minEl);
+            }
+
+            if (!isFuture || isToday) {
+                cell.addEventListener('click', () => openModal(dStr));
+            }
+            grid.appendChild(cell);
+        }
+
+        section.appendChild(grid);
+        container.appendChild(section);
+        cur = new Date(year, month + 1, 1);
+    }
+}
+
+function renderMilestones() {
+    const list  = document.getElementById('milestones-list');
+    list.innerHTML = '';
+    const today = todayStr();
+
+    MILESTONES.forEach(m => {
+        const item    = el('div', 'milestone-item');
+        const dateEl  = el('div', 'milestone-date');
+        const labelEl = el('div', 'milestone-label');
+
+        dateEl.textContent  = formatShort(m.date);
+        labelEl.textContent = m.label;
+
+        if (m.date < today)  item.classList.add('past');
+        if (m.date === today) item.classList.add('today-milestone');
+
+        item.appendChild(dateEl);
+        item.appendChild(labelEl);
+        list.appendChild(item);
+    });
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
+function openModal(dStr) {
+    modalDate  = dStr;
+    selStatus  = null;
+    selQuality = null;
+
+    document.getElementById('modal-date-label').textContent = formatFull(dStr);
+    document.getElementById('modal-minutes').value = '';
+    document.getElementById('modal-note').value    = '';
+    document.querySelectorAll('.quality-btn').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('.btn-status').forEach(b => b.className = 'btn-status');
+
+    const entry = appData.sessions[dStr];
+    if (entry) {
+        setStatus(entry.status);
+        if (entry.minutes) document.getElementById('modal-minutes').value = entry.minutes;
+        if (entry.note)    document.getElementById('modal-note').value    = entry.note;
+        if (entry.quality) setQuality(entry.quality);
+    }
+
+    document.getElementById('fields-done').style.display = (entry?.status === 'done') ? 'block' : 'none';
+    document.getElementById('modal-overlay').classList.add('active');
+}
+
+function closeModalOutside(e) {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+}
+
+function setStatus(status) {
+    selStatus = status;
+    document.getElementById('btn-done').className   = 'btn-status' + (status === 'done'         ? ' sel-done'   : '');
+    document.getElementById('btn-missed').className = 'btn-status' + (status === 'missed'       ? ' sel-missed' : '');
+    document.getElementById('btn-off').className    = 'btn-status' + (status === 'planned-off'  ? ' sel-off'    : '');
+    document.getElementById('fields-done').style.display = status === 'done' ? 'block' : 'none';
+}
+
+function setQuality(q) {
+    selQuality = q;
+    document.querySelectorAll('.quality-btn').forEach((b, i) => {
+        b.classList.toggle('selected', i + 1 === q);
+    });
+}
+
+async function saveEntry() {
+    if (!selStatus) { toast('Vyber stav'); return; }
+
+    const entry = { status: selStatus };
+
+    if (selStatus === 'done') {
+        const mins = parseInt(document.getElementById('modal-minutes').value);
+        if (!mins || mins < 1) { toast('Zadej počet minut'); return; }
+        entry.minutes = mins;
+        if (selQuality) entry.quality = selQuality;
+    }
+
+    const note = document.getElementById('modal-note').value.trim();
+    if (note) entry.note = note;
+
+    appData.sessions[modalDate] = entry;
+    closeModal();
+    renderCalendar();
+    updateStats();
+    await saveData();
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+function showSettings() {
+    const newToken = prompt('GitHub Token (ponech prázdné pro zachování):');
+    if (newToken === null) return;
+    if (newToken.trim()) { ghToken = newToken.trim(); localStorage.setItem('gh_token', ghToken); }
+
+    const newGist = prompt('Gist ID:', gistId || '');
+    if (newGist === null) return;
+    if (newGist.trim() && newGist.trim() !== gistId) {
+        gistId = newGist.trim();
+        localStorage.setItem('gist_id', gistId);
+        loadData();
+    }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const pad = n => String(n).padStart(2, '0');
+
+function el(tag, cls) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    return e;
+}
+
+function show(id, visible, displayVal = 'block') {
+    document.getElementById(id).style.display = visible ? displayVal : 'none';
+}
+
+function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function parseDate(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+
+function dateStr(d) {
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function addDays(d, n) {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+}
+
+function formatShort(str) {
+    const [y, m, d] = str.split('-').map(Number);
+    return `${d}.${m}.${y}`;
+}
+
+function formatFull(str) {
+    const days = ['neděle','pondělí','úterý','středa','čtvrtek','pátek','sobota'];
+    const d    = parseDate(str);
+    return `${days[d.getDay()]} ${d.getDate()}. ${d.getMonth()+1}. ${d.getFullYear()}`;
+}
+
+let toastTimer = null;
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
