@@ -278,13 +278,18 @@
         }
 
         /* ── Calendar ───────────────────────────── */
-        .calendar-container { padding: 12px 12px 0; }
+        .calendar-container {
+            padding: 16px 16px 0;
+            display: grid;
+            grid-template-columns: repeat(2, max-content);
+            gap: 16px 28px;
+        }
 
-        .month-section { margin-bottom: 18px; }
+        .month-section { margin-bottom: 0; }
 
         .month-header {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             letter-spacing: 3px;
             color: var(--text-dim);
             margin-bottom: 6px;
@@ -294,7 +299,7 @@
 
         .weekday-row, .days-grid {
             display: grid;
-            grid-template-columns: repeat(7, 24px);
+            grid-template-columns: repeat(7, 28px);
             gap: 2px;
         }
         .weekday-row { margin-bottom: 2px; }
@@ -306,14 +311,14 @@
             text-transform: uppercase;
             color: var(--text-dim);
             padding: 2px 0;
-            width: 24px;
+            width: 28px;
         }
 
-        /* Compact day cells — fixed 24px */
+        /* Compact day cells — fixed 28px */
         .day-cell {
-            width: 24px;
-            height: 24px;
-            border-radius: 4px;
+            width: 28px;
+            height: 28px;
+            border-radius: 5px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -324,6 +329,12 @@
             border: 1px solid transparent;
             transition: transform 0.1s, opacity 0.1s;
             user-select: none; -webkit-user-select: none;
+        }
+
+        @media (max-width: 420px) {
+            .calendar-container {
+                grid-template-columns: max-content;
+            }
         }
         .day-cell:active { transform: scale(0.88); }
 
