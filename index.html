@@ -19,12 +19,15 @@
             --pink:     #e879a0;
             --lavender: #c084d8;
             --gradient: linear-gradient(135deg, #f5a46a 0%, #e879a0 50%, #c084d8 100%);
+            --indigo:       #818cf8;
             --done-bg:      rgba(245,164,106,0.15);
             --done-border:  #f5a46a;
             --missed-bg:    rgba(239,68,68,0.12);
             --missed-border:#7f1d1d;
             --off-bg:       rgba(255,255,255,0.04);
             --off-border:   rgba(255,255,255,0.15);
+            --concert-bg:   rgba(129,140,248,0.18);
+            --concert-border:#818cf8;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -232,6 +235,7 @@
         .ring-fill.peach   { stroke: var(--peach); }
         .ring-fill.pink    { stroke: var(--pink); }
         .ring-fill.lavender{ stroke: var(--lavender); }
+        .ring-fill.indigo  { stroke: var(--indigo); }
 
         .stat-value {
             position: absolute;
@@ -245,6 +249,7 @@
         .stat-value.peach   { color: var(--peach); }
         .stat-value.pink    { color: var(--pink); }
         .stat-value.lavender{ color: var(--lavender); }
+        .stat-value.indigo  { color: var(--indigo); }
 
         .stat-label {
             font-size: 8px; color: var(--text-dim);
@@ -350,6 +355,7 @@
 
         .day-cell.missed       { background: var(--missed-bg); border-color: var(--missed-border); }
         .day-cell.planned-off  { background: var(--off-bg); border-color: var(--off-border); }
+        .day-cell.concert      { background: var(--concert-bg); border-color: var(--concert-border); }
 
         .day-number { font-family: 'Barlow Condensed', sans-serif; font-weight: 600; font-size: 8px; line-height: 1; }
         .day-minutes { font-size: 6px; color: var(--peach); margin-top: 1px; line-height: 1; }
@@ -500,9 +506,10 @@
             cursor: pointer; text-align: center;
             transition: all 0.15s;
         }
-        .btn-status.sel-done   { border-color: var(--peach); color: var(--peach); background: rgba(245,164,106,0.1); }
-        .btn-status.sel-missed { border-color: #ef4444; color: #fca5a5; background: rgba(239,68,68,0.1); }
-        .btn-status.sel-off    { border-color: rgba(255,255,255,0.3); color: var(--text); background: rgba(255,255,255,0.05); }
+        .btn-status.sel-done    { border-color: var(--peach); color: var(--peach); background: rgba(245,164,106,0.1); }
+        .btn-status.sel-missed  { border-color: #ef4444; color: #fca5a5; background: rgba(239,68,68,0.1); }
+        .btn-status.sel-off     { border-color: rgba(255,255,255,0.3); color: var(--text); background: rgba(255,255,255,0.05); }
+        .btn-status.sel-concert { border-color: var(--indigo); color: var(--indigo); background: rgba(129,140,248,0.1); }
 
         .modal-field { margin-bottom: 16px; }
         .modal-field label {
@@ -638,6 +645,16 @@
                 </div>
                 <div class="stat-label">Celkem hodin</div>
             </div>
+            <div class="stat-card">
+                <div class="ring-container">
+                    <svg class="stat-ring" viewBox="0 0 36 36" width="58" height="58">
+                        <circle class="ring-bg" cx="18" cy="18" r="15.9"/>
+                        <circle class="ring-fill indigo" id="ring-concerts" cx="18" cy="18" r="15.9" stroke-dasharray="0 100"/>
+                    </svg>
+                    <div class="stat-value indigo" id="stat-concerts">0</div>
+                </div>
+                <div class="stat-label">Koncerty</div>
+            </div>
         </div>
         <div class="countdown-bar" id="countdown-bar"></div>
         <div class="warning-banner" id="warning-banner">
@@ -663,9 +680,10 @@
         <div class="modal-date" id="modal-date-label"></div>
 
         <div class="modal-status-row">
-            <button class="btn-status" id="btn-done"   onclick="setStatus('done')">✅ CVIČIL</button>
-            <button class="btn-status" id="btn-missed" onclick="setStatus('missed')">❌ VYNECHAL</button>
-            <button class="btn-status" id="btn-off"    onclick="setStatus('planned-off')">⚫ VOLNO</button>
+            <button class="btn-status" id="btn-done"    onclick="setStatus('done')">✅ CVIČIL</button>
+            <button class="btn-status" id="btn-concert" onclick="setStatus('concert')">🎸 KONCERT</button>
+            <button class="btn-status" id="btn-missed"  onclick="setStatus('missed')">❌ VYNECHAL</button>
+            <button class="btn-status" id="btn-off"     onclick="setStatus('planned-off')">⚫ VOLNO</button>
         </div>
 
         <div id="fields-done">
@@ -818,24 +836,28 @@ function updateStats() {
         const s = dateStr(d);
         if (s > today) { d = addDays(d,-1); continue; }
         const st = appData.sessions[s]?.status;
-        if (st === 'done' || st === 'planned-off') { streak++; d = addDays(d,-1); } else break;
+        if (st === 'done' || st === 'planned-off' || st === 'concert') { streak++; d = addDays(d,-1); } else break;
     }
 
     const done      = Object.values(appData.sessions).filter(e => e.status === 'done');
+    const concerts  = Object.values(appData.sessions).filter(e => e.status === 'concert');
     const totalMin  = done.reduce((s,e) => s+(e.minutes||0), 0);
     const totalHrs  = totalMin >= 60 ? `${(totalMin/60).toFixed(1)}h` : `${totalMin}m`;
 
     document.getElementById('stat-streak').textContent      = streak;
     document.getElementById('stat-total-days').textContent  = done.length;
     document.getElementById('stat-total-hours').textContent = totalHrs;
+    document.getElementById('stat-concerts').textContent    = concerts.length;
 
     // Rings
-    const streakPct = Math.min(streak / 60, 1) * 100;
-    const daysPct   = Math.min(done.length / TOTAL_DAYS, 1) * 100;
-    const hoursPct  = Math.min(totalMin / (HOURS_TARGET * 60), 1) * 100;
-    setRing('ring-streak', streakPct);
-    setRing('ring-days',   daysPct);
-    setRing('ring-hours',  hoursPct);
+    const streakPct   = Math.min(streak / 60, 1) * 100;
+    const daysPct     = Math.min(done.length / TOTAL_DAYS, 1) * 100;
+    const hoursPct    = Math.min(totalMin / (HOURS_TARGET * 60), 1) * 100;
+    const concertsPct = Math.min(concerts.length / 20, 1) * 100;
+    setRing('ring-streak',   streakPct);
+    setRing('ring-days',     daysPct);
+    setRing('ring-hours',    hoursPct);
+    setRing('ring-concerts', concertsPct);
 
     // Countdown
     const premD = parseDate(PREMIERE_DATE);
@@ -999,9 +1021,10 @@ function closeModal() { document.getElementById('modal-overlay').classList.remov
 
 function setStatus(s) {
     selStatus = s;
-    document.getElementById('btn-done').className   = 'btn-status' + (s==='done'         ? ' sel-done'  : '');
-    document.getElementById('btn-missed').className = 'btn-status' + (s==='missed'       ? ' sel-missed': '');
-    document.getElementById('btn-off').className    = 'btn-status' + (s==='planned-off'  ? ' sel-off'   : '');
+    document.getElementById('btn-done').className    = 'btn-status' + (s==='done'        ? ' sel-done'   : '');
+    document.getElementById('btn-concert').className = 'btn-status' + (s==='concert'     ? ' sel-concert': '');
+    document.getElementById('btn-missed').className  = 'btn-status' + (s==='missed'      ? ' sel-missed' : '');
+    document.getElementById('btn-off').className     = 'btn-status' + (s==='planned-off' ? ' sel-off'    : '');
     document.getElementById('fields-done').style.display = s === 'done' ? 'block' : 'none';
 }
 
